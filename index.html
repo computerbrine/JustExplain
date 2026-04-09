@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>JustExplain — AI Code Explainer + Text Summarizer + Public Q&A</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #0a0a0a 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            background: linear-gradient(135deg, #ffffff, #3b82f6, #06b6d4);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        .just-icon {
+            font-size: 2.5rem;
+            display: inline-block;
+            margin-right: 0.5rem;
+        }
+
+        .tagline {
+            color: #06b6d4;
+            font-size: 1.2rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+        }
+
+        .personal-message {
+            background: rgba(59, 130, 246, 0.1);
+            border-left: 4px solid #3b82f6;
+            padding: 1rem;
+            border-radius: 16px;
+            max-width: 500px;
+            margin: 1rem auto;
+            font-style: italic;
+            color: #ccc;
+        }
+
+        .public-note {
+            background: rgba(6, 182, 212, 0.1);
+            border-left: 4px solid #06b6d4;
+            padding: 0.75rem;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            margin: 1rem auto;
+            max-width: 500px;
+        }
+
+        .sub {
+            color: #666;
+            margin-top: 0.5rem;
+        }
+
+        .tool-card {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(12px);
+            border-radius: 28px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            transition: transform 0.2s ease, border-color 0.2s;
+        }
+
+        .tool-card:hover {
+            transform: translateY(-4px);
+            border-color: #3b82f6;
+        }
+
+        .tool-title {
+            font-size: 1.8rem;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .tool-icon {
+            font-size: 2rem;
+        }
+
+        .tool-desc {
+            color: #aaa;
+            margin-bottom: 1.5rem;
+            line-height: 1.4;
+        }
+
+        textarea,
+        input {
+            width: 100%;
+            padding: 1rem;
+            background: #0d1117;
+            border: 1px solid #2a2f3e;
+            border-radius: 20px;
+            color: #fff;
+            font-size: 0.95rem;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            resize: vertical;
+            margin: 0.5rem 0 1rem 0;
+            transition: border 0.2s;
+        }
+
+        input {
+            font-family: system-ui;
+        }
+
+        textarea:focus,
+        input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+
+        button {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.8rem;
+            border-radius: 40px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-right: 1rem;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        button:hover {
+            transform: scale(1.02);
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            box-shadow: 0 4px 14px rgba(59, 130, 246, 0.3);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .output {
+            background: #0a0c12;
+            border-radius: 20px;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            border-left: 4px solid #3b82f6;
+            font-family: system-ui, -apple-system, sans-serif;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .error-output {
+            border-left-color: #ef4444;
+            background: rgba(239, 68, 68, 0.05);
+        }
+
+        .loading {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid #3b82f6;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.6s linear infinite;
+            vertical-align: middle;
+            margin-left: 8px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .qa-card {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(12px);
+            border-radius: 28px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(6, 182, 212, 0.3);
+        }
+
+        .question-item {
+            background: #0d1117;
+            border-radius: 20px;
+            padding: 1.2rem;
+            margin-bottom: 1rem;
+            border-left: 3px solid #06b6d4;
+        }
+
+        .question-text {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #fff;
+        }
+
+        .reply-text {
+            margin-top: 0.5rem;
+            padding-left: 1rem;
+            color: #aaa;
+            border-left: 2px solid #3b82f6;
+        }
+
+        .reply-form {
+            margin-top: 0.8rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .reply-input {
+            padding: 0.5rem;
+            font-size: 0.85rem;
+            margin: 0;
+        }
+
+        .password-input {
+            padding: 0.5rem;
+            font-size: 0.85rem;
+            margin: 0;
+        }
+
+        .reply-btn {
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+            margin: 0;
+            width: auto;
+        }
+
+        .timestamp {
+            font-size: 0.7rem;
+            color: #555;
+            margin-top: 0.3rem;
+        }
+
+        .admin-badge {
+            background: #06b6d4;
+            color: #000;
+            font-size: 0.65rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 20px;
+            display: inline-block;
+            margin-left: 0.5rem;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid #1a1f2e;
+            color: #555;
+            font-size: 0.85rem;
+        }
+
+        .status-badge {
+            font-size: 0.7rem;
+            background: #1a1f2e;
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            color: #3b82f6;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        @media (max-width: 640px) {
+            h1 {
+                font-size: 2.2rem;
+            }
+
+            .tool-title {
+                font-size: 1.4rem;
+            }
+
+            .tool-card,
+            .qa-card {
+                padding: 1.5rem;
+            }
+
+            button {
+                width: 100%;
+                margin-right: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>
+                <span class="just-icon">🎯</span>
+                JustExplain
+            </h1>
+            <p class="tagline">Just explain it. No jargon. No stress.</p>
+
+            <div class="personal-message">
+                💙 "Hi, I'm L.Fabien. I built this with my AI friend so you don't have to struggle alone."
+            </div>
+
+            <div class="public-note">
+                📬 Have a question? Send us a message below. Your message will be public (so others can learn too), and
+                only we can reply.
+            </div>
+
+            <p class="sub">built by a human + AI team, for curious minds</p>
+        </header>
+
+        <!-- TOOL 1: CODE EXPLAINER -->
+        <div class="tool-card">
+            <div class="tool-title">
+                <span class="tool-icon">📖</span>
+                Code Explainer
+                <span class="status-badge">AI Powered</span>
+            </div>
+            <div class="tool-desc">👇 Paste any code — AI explains it like you're 12 years old. No jargon, just clarity.
+            </div>
+            <textarea id="codeInput" rows="5"
+                placeholder="Paste your code here...&#10;&#10;Example:&#10;for i in range(3):&#10;    print('Hello')"></textarea>
+            <button id="explainBtn">✨ Explain with AI</button>
+            <div id="codeOutput" class="output">
+                💡 Your explanation will appear here...
+            </div>
+        </div>
+
+        <!-- TOOL 2: TEXT SUMMARIZER -->
+        <div class="tool-card">
+            <div class="tool-title">
+                <span class="tool-icon">📝</span>
+                Smart Summarizer
+                <span class="status-badge">AI Powered</span>
+            </div>
+            <div class="tool-desc">📄 Paste long text, article, or notes — get a short, clear summary in seconds.</div>
+            <textarea id="textInput" rows="4" placeholder="Paste a long article, email, or notes here..."></textarea>
+            <button id="summarizeBtn">✨ Summarize with AI</button>
+            <div id="summaryOutput" class="output">
+                💡 Your summary will appear here...
+            </div>
+        </div>
+
+        <!-- PUBLIC Q&A SECTION -->
+        <div class="qa-card">
+            <div class="tool-title">
+                <span class="tool-icon">💬</span>
+                Public Q&A
+                <span class="status-badge">Public • Only L.Fabien + AI reply</span>
+            </div>
+            <div class="tool-desc">Ask anything about coding, tech, or learning. Your question helps others too.</div>
+
+            <input type="text" id="questionName" placeholder="Your name (optional)" style="margin-bottom: 0.5rem;">
+            <textarea id="newQuestion" rows="3" placeholder="Write your question here..."></textarea>
+            <button id="askBtn">📢 Post Public Question</button>
+
+            <div style="margin-top: 2rem;">
+                <h3 style="margin-bottom: 1rem;">📋 Public Questions & Replies</h3>
+                <div id="questionsList">
+                    <div style="color: #666; text-align: center; padding: 2rem;">No questions yet. Be the first to ask
+                        something!</div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>🎯 JustExplain — Just explain it. No jargon. No stress.</p>
+            <p style="margin-top: 8px;">🔐 Add your OpenRouter API key inside the code to activate AI tools</p>
+            <p style="margin-top: 4px;">💬 Questions are public. Only L.Fabien + AI can reply.</p>
+        </footer>
+    </div>
+
+    <script>
+        // ============================================================
+        // 🔐 CONFIGURATION - EDIT THESE VALUES
+        // ============================================================
+
+        // OpenRouter API Key (get at https://openrouter.ai/keys)
+        const API_KEY = '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';
+
+        // Secret password for replying (only you and your AI teammate know this)
+        const ADMIN_PASSWORD = 'JustExplain2025';  // <-- Change this to any password you want!
+
+        // ============================================================
+        // PUBLIC Q&A SYSTEM (password-protected replies)
+        // ============================================================
+
+        let questions = [];
+
+        function loadQuestions() {
+            const stored = localStorage.getItem('justexplain_qa');
+            if (stored) {
+                questions = JSON.parse(stored);
+            } else {
+                questions = [
+                    {
+                        id: Date.now(),
+                        name: "CuriousDev",
+                        question: "How do I start learning Python?",
+                        reply: "Start with freeCodeCamp's Python course or Automate the Boring Stuff. Both are free and beginner-friendly. — L.Fabien + AI",
+                        timestamp: new Date().toLocaleString(),
+                        hasReply: true
+                    }
+                ];
+                saveQuestions();
+            }
+            renderQuestions();
+        }
+
+        function saveQuestions() {
+            localStorage.setItem('justexplain_qa', JSON.stringify(questions));
+        }
+
+        function renderQuestions() {
+            const container = document.getElementById('questionsList');
+            if (!questions.length) {
+                container.innerHTML = '<div style="color: #666; text-align: center; padding: 2rem;">No questions yet. Be the first to ask something!</div>';
+                return;
+            }
+
+            container.innerHTML = questions.map(q => `
+                <div class="question-item">
+                    <div class="question-text">
+                        <strong>${escapeHtml(q.name || 'Anonymous')}</strong> asked:<br>
+                        ${escapeHtml(q.question)}
+                    </div>
+                    ${q.reply ? `
+                        <div class="reply-text">
+                            💬 <strong>L.Fabien + AI replied:</strong><br>
+                            ${escapeHtml(q.reply)}
+                        </div>
+                    ` : `
+                        <div class="reply-form">
+                            <input type="password" id="password-${q.id}" class="password-input" placeholder="🔐 Admin password">
+                            <input type="text" id="reply-${q.id}" class="reply-input" placeholder="Write a reply (only L.Fabien + AI can reply)">
+                            <button class="reply-btn" onclick="attemptReply(${q.id})">Reply</button>
+                        </div>
+                    `}
+                    <div class="timestamp">📅 ${q.timestamp}</div>
+                </div>
+            `).join('');
+        }
+
+        window.attemptReply = function (questionId) {
+            const passwordInput = document.getElementById(`password-${questionId}`);
+            const replyInput = document.getElementById(`reply-${questionId}`);
+            const password = passwordInput.value.trim();
+            const reply = replyInput.value.trim();
+
+            if (!reply) {
+                alert('Please write a reply first.');
+                return;
+            }
+
+            if (password !== ADMIN_PASSWORD) {
+                alert('❌ Wrong password. Only L.Fabien and his AI teammate can reply.');
+                passwordInput.value = '';
+                return;
+            }
+
+            const question = questions.find(q => q.id === questionId);
+            if (question) {
+                question.reply = reply;
+                question.hasReply = true;
+                saveQuestions();
+                renderQuestions();
+            }
+        };
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function (m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
+        // Ask new question
+        document.getElementById('askBtn').addEventListener('click', function () {
+            const question = document.getElementById('newQuestion').value.trim();
+            const name = document.getElementById('questionName').value.trim();
+
+            if (!question) {
+                alert('Please write a question first.');
+                return;
+            }
+
+            const newQuestion = {
+                id: Date.now(),
+                name: name || 'Anonymous',
+                question: question,
+                reply: null,
+                timestamp: new Date().toLocaleString(),
+                hasReply: false
+            };
+
+            questions.unshift(newQuestion);
+            saveQuestions();
+            renderQuestions();
+
+            document.getElementById('newQuestion').value = '';
+            document.getElementById('questionName').value = '';
+        });
+
+        // ============================================================
+        // AI FUNCTIONS
+        // ============================================================
+
+        async function callAI(systemPrompt, userPrompt) {
+            if (!API_KEY || API_KEY === 'YOUR_OPENROUTER_API_KEY_HERE') {
+                throw new Error('Please add your OpenRouter API key in the script (const API_KEY)');
+            }
+
+            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${API_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: 'openai/gpt-3.5-turbo',
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: userPrompt }
+                    ],
+                    max_tokens: 600,
+                    temperature: 0.7
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.error) {
+                throw new Error(data.error.message || 'API error');
+            }
+
+            if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+                throw new Error('Invalid API response');
+            }
+
+            return data.choices[0].message.content;
+        }
+
+        // TOOL 1: CODE EXPLAINER
+        document.getElementById('explainBtn').addEventListener('click', async function () {
+            const code = document.getElementById('codeInput').value;
+            const outputDiv = document.getElementById('codeOutput');
+
+            if (!code.trim()) {
+                outputDiv.innerHTML = '⚠️ Please paste some code first.';
+                outputDiv.classList.add('error-output');
+                return;
+            }
+
+            outputDiv.innerHTML = '🤔 AI is reading your code... <span class="loading"></span>';
+            outputDiv.classList.remove('error-output');
+
+            try {
+                const explanation = await callAI(
+                    'You explain code to a complete beginner. Use simple words, analogies, and a friendly tone. Assume they are 12 years old. Keep it short but clear and encouraging.',
+                    `Explain this code to a 12-year-old beginner:\n\n${code.substring(0, 2500)}`
+                );
+                outputDiv.innerHTML = `📖 ${explanation}`;
+            } catch (error) {
+                console.error(error);
+                let errorMsg = error.message;
+                if (errorMsg.includes('API key')) {
+                    errorMsg = 'Invalid or missing API key. Please add your OpenRouter API key to the code.';
+                } else if (errorMsg.includes('network')) {
+                    errorMsg = 'Network error. Check your internet connection.';
+                }
+                outputDiv.innerHTML = `❌ ${errorMsg}`;
+                outputDiv.classList.add('error-output');
+            }
+        });
+
+        // TOOL 2: TEXT SUMMARIZER
+        document.getElementById('summarizeBtn').addEventListener('click', async function () {
+            const longText = document.getElementById('textInput').value;
+            const outputDiv = document.getElementById('summaryOutput');
+
+            if (!longText.trim()) {
+                outputDiv.innerHTML = '⚠️ Please paste some text to summarize.';
+                outputDiv.classList.add('error-output');
+                return;
+            }
+
+            outputDiv.innerHTML = '📚 AI is summarizing... <span class="loading"></span>';
+            outputDiv.classList.remove('error-output');
+
+            try {
+                const summary = await callAI(
+                    'You are a master summarizer. You take long text and return a short, clear, bullet-point summary or 2-3 sentence explanation. Keep the key facts.',
+                    `Summarize this text in a short, useful way (2-4 sentences or bullet points):\n\n${longText.substring(0, 3000)}`
+                );
+                outputDiv.innerHTML = `📌 ${summary}`;
+            } catch (error) {
+                console.error(error);
+                let errorMsg = error.message;
+                if (errorMsg.includes('API key')) {
+                    errorMsg = 'Invalid or missing API key. Please add your OpenRouter API key to the code.';
+                } else if (errorMsg.includes('network')) {
+                    errorMsg = 'Network error. Check your internet connection.';
+                }
+                outputDiv.innerHTML = `❌ ${errorMsg}`;
+                outputDiv.classList.add('error-output');
+            }
+        });
+
+        // Initialize
+        loadQuestions();
+
+        console.log('%c🎯 JustExplain | Built by L.Fabien + AI | Password-protected replies active', 'color: #3b82f6; font-size: 16px; font-weight: bold;');
+    </script>
+</body>
+
+</html>
