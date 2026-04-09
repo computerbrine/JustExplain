@@ -2,132 +2,301 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JustExplain — Simple Code Explainer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>JustExplain — Explain Anything</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: system-ui, -apple-system, sans-serif;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #0f172a 0%, #0a0a0a 100%);
             color: #e0e0e0;
-            max-width: 900px;
-            margin: 0 auto;
+            min-height: 100vh;
             padding: 2rem 1rem;
         }
 
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
         h1 {
-            font-size: 3rem;
-            background: linear-gradient(135deg, #ffffff, #3b82f6);
+            font-size: 3.5rem;
+            background: linear-gradient(135deg, #ffffff, #3b82f6, #06b6d4);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
-            text-align: center;
             margin-bottom: 0.5rem;
         }
 
         .tagline {
-            text-align: center;
-            color: #3b82f6;
-            margin-bottom: 2rem;
+            color: #06b6d4;
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
         }
 
         .personal-message {
             background: rgba(59, 130, 246, 0.1);
             border-left: 4px solid #3b82f6;
             padding: 1rem;
-            border-radius: 12px;
-            text-align: center;
-            margin-bottom: 2rem;
+            border-radius: 16px;
+            max-width: 500px;
+            margin: 1rem auto;
             font-style: italic;
         }
 
         .tool-card {
             background: rgba(15, 23, 42, 0.7);
-            border-radius: 24px;
-            padding: 2rem;
+            backdrop-filter: blur(12px);
+            border-radius: 28px;
+            padding: 1.8rem;
+            margin-bottom: 2rem;
             border: 1px solid rgba(59, 130, 246, 0.3);
+            transition: transform 0.2s;
+        }
+
+        .tool-card:hover {
+            transform: translateY(-4px);
+            border-color: #3b82f6;
         }
 
         .tool-title {
             font-size: 1.8rem;
             margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
         }
 
-        textarea {
+        .tool-icon {
+            font-size: 2rem;
+        }
+
+        .tool-desc {
+            color: #aaa;
+            margin-bottom: 1.2rem;
+        }
+
+        textarea, input {
             width: 100%;
             padding: 1rem;
             background: #0d1117;
             border: 1px solid #2a2f3e;
-            border-radius: 16px;
+            border-radius: 20px;
             color: #fff;
-            font-family: monospace;
-            font-size: 0.9rem;
-            margin: 1rem 0;
+            font-size: 0.95rem;
+            font-family: 'SF Mono', 'Fira Code', monospace;
             resize: vertical;
+            margin: 0.5rem 0 1rem 0;
+        }
+
+        input {
+            font-family: system-ui;
+        }
+
+        textarea:focus, input:focus {
+            outline: none;
+            border-color: #3b82f6;
         }
 
         button {
             background: linear-gradient(135deg, #3b82f6, #2563eb);
             color: white;
             border: none;
-            padding: 0.75rem 1.8rem;
+            padding: 0.7rem 1.8rem;
             border-radius: 40px;
-            font-size: 1rem;
+            font-size: 0.95rem;
             font-weight: 600;
             cursor: pointer;
+            transition: all 0.2s;
+            margin-right: 1rem;
+            margin-bottom: 0.5rem;
         }
 
         button:hover {
             transform: scale(1.02);
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
         }
 
         .output {
-            background: #0d1117;
-            border-radius: 16px;
-            padding: 1.5rem;
-            margin-top: 1.5rem;
+            background: #0a0c12;
+            border-radius: 20px;
+            padding: 1.2rem;
+            margin-top: 1rem;
             border-left: 4px solid #3b82f6;
             line-height: 1.5;
+            white-space: pre-wrap;
+        }
+
+        .error-output {
+            border-left-color: #ef4444;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid #3b82f6;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.6s linear infinite;
+            vertical-align: middle;
+            margin-left: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .qa-card {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(12px);
+            border-radius: 28px;
+            padding: 1.8rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(6, 182, 212, 0.3);
+        }
+
+        .question-item {
+            background: #0d1117;
+            border-radius: 20px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-left: 3px solid #06b6d4;
+        }
+
+        .question-text {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .reply-text {
+            margin-top: 0.5rem;
+            padding-left: 1rem;
+            color: #aaa;
+            border-left: 2px solid #3b82f6;
+        }
+
+        .reply-form {
+            margin-top: 0.8rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .reply-input, .password-input {
+            padding: 0.5rem;
+            font-size: 0.85rem;
+            margin: 0;
+        }
+
+        .reply-btn {
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+            width: auto;
+        }
+
+        .timestamp {
+            font-size: 0.7rem;
+            color: #555;
+            margin-top: 0.3rem;
         }
 
         footer {
             text-align: center;
             margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #1a1f2e;
             color: #555;
             font-size: 0.85rem;
+        }
+
+        @media (max-width: 640px) {
+            h1 { font-size: 2.2rem; }
+            .tool-title { font-size: 1.4rem; }
+            .tool-card, .qa-card { padding: 1.2rem; }
         }
     </style>
 </head>
 <body>
+    <div class="container">
+        <header>
+            <h1>🎯 JustExplain</h1>
+            <div class="tagline">Just explain it. No jargon. No stress.</div>
+            <div class="personal-message">
+                💙 "Hi, I'm L.Fabien. I built this with my AI friend so you don't have to struggle alone."
+            </div>
+        </header>
 
-    <h1>🎯 JustExplain</h1>
-    <div class="tagline">Just explain it. No jargon. No stress.</div>
-
-    <div class="personal-message">
-        💙 "Hi, I'm L.Fabien. I built this with my AI friend so you don't have to struggle alone."
-    </div>
-
-    <div class="tool-card">
-        <div class="tool-title">📖 Code Explainer</div>
-        <p>👇 Paste any code — AI explains it like you're 12 years old.</p>
-
-        <textarea id="codeInput" rows="6" placeholder="Paste your code here...&#10;&#10;Example:&#10;for i in range(3):&#10;    print('Hello')"></textarea>
-
-        <button id="explainBtn">✨ Explain with AI</button>
-
-        <div id="output" class="output">
-            💡 Your explanation will appear here...
+        <!-- TOOL 1: CODE EXPLAINER -->
+        <div class="tool-card">
+            <div class="tool-title">
+                <span class="tool-icon">📖</span>
+                Code Explainer
+            </div>
+            <div class="tool-desc">👇 Paste any code — I'll explain it like you're 12 years old.</div>
+            <textarea id="codeInput" rows="5" placeholder="Paste your code here...&#10;&#10;Example:&#10;for i in range(3):&#10;    print('Hello')"></textarea>
+            <button id="explainBtn">✨ Explain Code</button>
+            <div id="codeOutput" class="output">💡 Your explanation will appear here...</div>
         </div>
-    </div>
 
-    <footer>
-        <p>🎯 JustExplain — Built by L.Fabien + AI teammate</p>
-        <p>🔐 This is a demo version. Full AI features coming soon.</p>
-    </footer>
+        <!-- TOOL 2: TEXT SUMMARIZER -->
+        <div class="tool-card">
+            <div class="tool-title">
+                <span class="tool-icon">📝</span>
+                Text Summarizer
+            </div>
+            <div class="tool-desc">📄 Paste long text — I'll give you a short, clear summary.</div>
+            <textarea id="textInput" rows="4" placeholder="Paste a long article, email, or notes here..."></textarea>
+            <button id="summarizeBtn">✨ Summarize Text</button>
+            <div id="summaryOutput" class="output">💡 Your summary will appear here...</div>
+        </div>
+
+        <!-- TOOL 3: GENERAL Q&A -->
+        <div class="qa-card">
+            <div class="tool-title">
+                <span class="tool-icon">💬</span>
+                General Q&A
+            </div>
+            <div class="tool-desc">Ask anything about coding, tech, or learning. Public questions — only L.Fabien + AI reply.</div>
+            
+            <input type="text" id="questionName" placeholder="Your name (optional)">
+            <textarea id="newQuestion" rows="3" placeholder="Write your question here..."></textarea>
+            <button id="askBtn">📢 Post Question</button>
+
+            <div style="margin-top: 1.5rem;">
+                <h3 style="margin-bottom: 1rem;">📋 Questions & Replies</h3>
+                <div id="questionsList">
+                    <div style="color: #666; text-align: center; padding: 2rem;">No questions yet. Be the first to ask!</div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>🎯 JustExplain — Built by L.Fabien + AI teammate</p>
+            <p>💬 Questions are public. Only L.Fabien + AI can reply.</p>
+        </footer>
+    </div>
 
     <script>
-        // Simple local explanations (no API key needed)
-        // This works immediately without any setup!
+        // ============================================================
+        // CONFIGURATION
+        // ============================================================
+        const ADMIN_PASSWORD = 'JustExplain2025';
 
+        // ============================================================
+        // SIMPLE EXPLANATIONS (NO API NEEDED)
+        // ============================================================
+        
         function explainCodeSimply(code) {
             const lowerCode = code.toLowerCase();
             
@@ -135,48 +304,219 @@
                 return '📖 This tells the computer to print something inside the "console" — like a digital sticky note for developers to see messages.';
             }
             if (lowerCode.includes('print(')) {
-                return '📖 This prints text to the screen. It\'s like shouting something out loud so everyone (or the computer) can hear it.';
+                return '📖 This prints text to the screen. It\'s like shouting something out loud so everyone can hear it.';
             }
             if (lowerCode.includes('function')) {
                 return '📖 This creates a reusable chunk of code — like a recipe you can use over and over instead of rewriting it.';
             }
-            if (lowerCode.includes('if')) {
+            if (lowerCode.includes('if ')) {
                 return '📖 This checks a condition. Like: "If it\'s raining, take an umbrella." The computer only runs the code if something is true.';
             }
-            if (lowerCode.includes('for') || lowerCode.includes('while')) {
+            if (lowerCode.includes('for ') || lowerCode.includes('while ')) {
                 return '📖 This is a loop. It repeats the same action multiple times — like saying "Happy Birthday!" 10 times instead of typing it out.';
             }
-            if (lowerCode.includes('import') || lowerCode.includes('from')) {
-                return '📖 This brings in code from another file or library — like borrowing a tool from a friend\'s toolbox instead of building it yourself.';
+            if (lowerCode.includes('import ') || lowerCode.includes('from ')) {
+                return '📖 This brings in code from another file or library — like borrowing a tool from a friend\'s toolbox.';
             }
-            if (lowerCode.includes('class')) {
+            if (lowerCode.includes('class ')) {
                 return '📖 This defines a blueprint for creating objects. Like a cookie cutter that makes many cookies with the same shape.';
             }
-            if (lowerCode.includes('return')) {
+            if (lowerCode.includes('return ')) {
                 return '📖 This sends a value back from a function. Like a vending machine that gives you a snack after you insert money.';
             }
+            if (lowerCode.includes('const ') || lowerCode.includes('let ') || lowerCode.includes('var ')) {
+                return '📖 This creates a variable — a labeled box where you can store information to use later.';
+            }
             
-            return '📖 This is code! (Full AI explanation coming soon — I\'m working on it!) For now, try pasting something like "console.log" or "for i in range" to see examples.';
+            return '📖 I see code! (Full AI explanation coming soon — I\'m learning!) Try pasting something like "console.log" or "for i in range" to see examples.';
         }
 
+        function summarizeTextSimply(text) {
+            if (text.length < 100) {
+                return '📌 This text is already short! Try pasting something longer (at least 100 characters) for a proper summary.';
+            }
+            
+            // Simple extractive summary - first 2-3 sentences
+            const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+            const summaryLength = Math.min(3, Math.ceil(sentences.length / 3));
+            const summary = sentences.slice(0, summaryLength).join(' ');
+            
+            if (summary.length > text.length * 0.7) {
+                return '📌 Here\'s the opening of your text:\n\n' + text.substring(0, 300) + (text.length > 300 ? '...' : '');
+            }
+            
+            return '📌 Summary:\n\n' + summary + (summary.length < text.length * 0.5 ? '...' : '');
+        }
+
+        // ============================================================
+        // TOOL 1: CODE EXPLAINER
+        // ============================================================
         document.getElementById('explainBtn').addEventListener('click', function() {
             const code = document.getElementById('codeInput').value;
-            const outputDiv = document.getElementById('output');
+            const outputDiv = document.getElementById('codeOutput');
             
             if (!code.trim()) {
                 outputDiv.innerHTML = '⚠️ Please paste some code first.';
+                outputDiv.classList.add('error-output');
                 return;
             }
             
-            // Add a small delay to feel like AI is thinking
-            outputDiv.innerHTML = '🤔 Reading your code...';
+            outputDiv.innerHTML = '🤔 Reading your code... <span class="loading"></span>';
+            outputDiv.classList.remove('error-output');
             
             setTimeout(() => {
                 const explanation = explainCodeSimply(code);
                 outputDiv.innerHTML = explanation;
-            }, 500);
+            }, 300);
         });
-    </script>
 
+        // ============================================================
+        // TOOL 2: TEXT SUMMARIZER
+        // ============================================================
+        document.getElementById('summarizeBtn').addEventListener('click', function() {
+            const text = document.getElementById('textInput').value;
+            const outputDiv = document.getElementById('summaryOutput');
+            
+            if (!text.trim()) {
+                outputDiv.innerHTML = '⚠️ Please paste some text to summarize.';
+                outputDiv.classList.add('error-output');
+                return;
+            }
+            
+            outputDiv.innerHTML = '📚 Summarizing... <span class="loading"></span>';
+            outputDiv.classList.remove('error-output');
+            
+            setTimeout(() => {
+                const summary = summarizeTextSimply(text);
+                outputDiv.innerHTML = summary;
+            }, 300);
+        });
+
+        // ============================================================
+        // TOOL 3: PUBLIC Q&A (with password protection)
+        // ============================================================
+        let questions = [];
+
+        function loadQuestions() {
+            const stored = localStorage.getItem('justexplain_qa');
+            if (stored) {
+                questions = JSON.parse(stored);
+            } else {
+                questions = [
+                    {
+                        id: Date.now(),
+                        name: "CuriousDev",
+                        question: "How do I start learning Python?",
+                        reply: "Start with freeCodeCamp's Python course or Automate the Boring Stuff. Both are free and beginner-friendly. — L.Fabien + AI",
+                        timestamp: new Date().toLocaleString(),
+                        hasReply: true
+                    }
+                ];
+                saveQuestions();
+            }
+            renderQuestions();
+        }
+
+        function saveQuestions() {
+            localStorage.setItem('justexplain_qa', JSON.stringify(questions));
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
+        function renderQuestions() {
+            const container = document.getElementById('questionsList');
+            if (!questions.length) {
+                container.innerHTML = '<div style="color: #666; text-align: center; padding: 2rem;">No questions yet. Be the first to ask!</div>';
+                return;
+            }
+
+            container.innerHTML = questions.map(q => `
+                <div class="question-item">
+                    <div class="question-text">
+                        <strong>${escapeHtml(q.name || 'Anonymous')}</strong> asked:<br>
+                        ${escapeHtml(q.question)}
+                    </div>
+                    ${q.reply ? `
+                        <div class="reply-text">
+                            💬 <strong>L.Fabien + AI replied:</strong><br>
+                            ${escapeHtml(q.reply)}
+                        </div>
+                    ` : `
+                        <div class="reply-form">
+                            <input type="password" id="password-${q.id}" class="password-input" placeholder="🔐 Admin password">
+                            <input type="text" id="reply-${q.id}" class="reply-input" placeholder="Write a reply (only L.Fabien + AI can reply)">
+                            <button class="reply-btn" onclick="attemptReply(${q.id})">Reply</button>
+                        </div>
+                    `}
+                    <div class="timestamp">📅 ${q.timestamp}</div>
+                </div>
+            `).join('');
+        }
+
+        window.attemptReply = function(questionId) {
+            const passwordInput = document.getElementById(`password-${questionId}`);
+            const replyInput = document.getElementById(`reply-${questionId}`);
+            const password = passwordInput.value.trim();
+            const reply = replyInput.value.trim();
+
+            if (!reply) {
+                alert('Please write a reply first.');
+                return;
+            }
+
+            if (password !== ADMIN_PASSWORD) {
+                alert('❌ Wrong password. Only L.Fabien and his AI teammate can reply.');
+                passwordInput.value = '';
+                return;
+            }
+
+            const question = questions.find(q => q.id === questionId);
+            if (question) {
+                question.reply = reply;
+                question.hasReply = true;
+                saveQuestions();
+                renderQuestions();
+            }
+        };
+
+        document.getElementById('askBtn').addEventListener('click', function() {
+            const question = document.getElementById('newQuestion').value.trim();
+            const name = document.getElementById('questionName').value.trim();
+
+            if (!question) {
+                alert('Please write a question first.');
+                return;
+            }
+
+            const newQuestion = {
+                id: Date.now(),
+                name: name || 'Anonymous',
+                question: question,
+                reply: null,
+                timestamp: new Date().toLocaleString(),
+                hasReply: false
+            };
+
+            questions.unshift(newQuestion);
+            saveQuestions();
+            renderQuestions();
+
+            document.getElementById('newQuestion').value = '';
+            document.getElementById('questionName').value = '';
+        });
+
+        // Initialize Q&A
+        loadQuestions();
+
+        console.log('%c🎯 JustExplain | Built by L.Fabien + AI | Ready to go!', 'color: #3b82f6; font-size: 16px; font-weight: bold;');
+    </script>
 </body>
 </html>
