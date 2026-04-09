@@ -54,35 +54,6 @@
             font-style: italic;
         }
 
-        .mode-selector {
-            display: flex;
-            gap: 0.5rem;
-            justify-content: center;
-            margin-bottom: 2rem;
-            flex-wrap: wrap;
-        }
-
-        .mode-btn {
-            background: rgba(15, 23, 42, 0.8);
-            border: 1px solid #3b82f6;
-            padding: 0.6rem 1.2rem;
-            border-radius: 40px;
-            cursor: pointer;
-            transition: all 0.2s;
-            color: #e0e0e0;
-        }
-
-        .mode-btn.active {
-            background: linear-gradient(135deg, #3b82f6, #2563eb);
-            border-color: #fff;
-            color: white;
-        }
-
-        .mode-btn:hover {
-            transform: scale(1.02);
-            background: #3b82f6;
-        }
-
         .tool-card {
             background: rgba(15, 23, 42, 0.7);
             backdrop-filter: blur(12px);
@@ -249,15 +220,10 @@
             font-size: 0.85rem;
         }
 
-        .hidden {
-            display: none;
-        }
-
         @media (max-width: 640px) {
             h1 { font-size: 2.2rem; }
             .tool-title { font-size: 1.4rem; }
             .tool-card, .qa-card { padding: 1.2rem; }
-            .mode-btn { padding: 0.4rem 1rem; font-size: 0.8rem; }
         }
     </style>
 </head>
@@ -271,40 +237,20 @@
             </div>
         </header>
 
-        <!-- MODE SELECTOR -->
-        <div class="mode-selector">
-            <div class="mode-btn active" data-mode="ask">💬 Ask Anything</div>
-            <div class="mode-btn" data-mode="code">📖 Code Explainer</div>
-            <div class="mode-btn" data-mode="summarize">📝 Summarizer</div>
-            <div class="mode-btn" data-mode="qa">💬 Q&A</div>
-        </div>
-
-        <!-- MODE 1: ASK ANYTHING (NEW!) -->
-        <div id="askMode" class="tool-card">
-            <div class="tool-title">
-                <span class="tool-icon">💬</span>
-                Ask Anything
-            </div>
-            <div class="tool-desc">🤔 Ask me anything — coding, math, science, history, life advice, whatever. I'll explain it simply.</div>
-            <textarea id="askInput" rows="4" placeholder="Ask anything...&#10;&#10;Examples:&#10;• What is a black hole?&#10;• How do I start learning Python?&#10;• Explain quantum physics simply&#10;• How to stay motivated?"></textarea>
-            <button id="askBtnMain">✨ Ask AI</button>
-            <div id="askOutput" class="output">💡 Your answer will appear here...</div>
-        </div>
-
-        <!-- MODE 2: CODE EXPLAINER -->
-        <div id="codeMode" class="tool-card hidden">
+        <!-- TOOL 1: CODE EXPLAINER -->
+        <div class="tool-card">
             <div class="tool-title">
                 <span class="tool-icon">📖</span>
                 Code Explainer
             </div>
             <div class="tool-desc">👇 Paste any code — I'll explain it like you're 12 years old.</div>
-            <textarea id="codeInput" rows="5" placeholder="Paste your code here..."></textarea>
+            <textarea id="codeInput" rows="5" placeholder="Paste your code here...&#10;&#10;Example:&#10;for i in range(3):&#10;    print('Hello')"></textarea>
             <button id="explainBtn">✨ Explain Code</button>
             <div id="codeOutput" class="output">💡 Your explanation will appear here...</div>
         </div>
 
-        <!-- MODE 3: SUMMARIZER -->
-        <div id="summarizeMode" class="tool-card hidden">
+        <!-- TOOL 2: TEXT SUMMARIZER -->
+        <div class="tool-card">
             <div class="tool-title">
                 <span class="tool-icon">📝</span>
                 Text Summarizer
@@ -315,17 +261,17 @@
             <div id="summaryOutput" class="output">💡 Your summary will appear here...</div>
         </div>
 
-        <!-- MODE 4: Q&A -->
-        <div id="qaMode" class="qa-card hidden">
+        <!-- TOOL 3: GENERAL Q&A -->
+        <div class="qa-card">
             <div class="tool-title">
                 <span class="tool-icon">💬</span>
-                Public Q&A
+                General Q&A
             </div>
             <div class="tool-desc">Ask anything about coding, tech, or learning. Public questions — only L.Fabien + AI reply.</div>
             
             <input type="text" id="questionName" placeholder="Your name (optional)">
             <textarea id="newQuestion" rows="3" placeholder="Write your question here..."></textarea>
-            <button id="askQnaBtn">📢 Post Question</button>
+            <button id="askBtn">📢 Post Question</button>
 
             <div style="margin-top: 1.5rem;">
                 <h3 style="margin-bottom: 1rem;">📋 Questions & Replies</h3>
@@ -336,8 +282,8 @@
         </div>
 
         <footer>
-            <p>🎯 JustExplain — Built by L.Fabien + AI teammate | From Madagascar with code 🇲🇬</p>
-            <p>💬 Ask anything. No judgment. Just help.</p>
+            <p>🎯 JustExplain — Built by L.Fabien + AI teammate</p>
+            <p>💬 Questions are public. Only L.Fabien + AI can reply.</p>
         </footer>
     </div>
 
@@ -348,103 +294,20 @@
         const ADMIN_PASSWORD = 'JustExplain2025';
 
         // ============================================================
-        // MODE SWITCHING
-        // ============================================================
-        const modes = {
-            ask: document.getElementById('askMode'),
-            code: document.getElementById('codeMode'),
-            summarize: document.getElementById('summarizeMode'),
-            qa: document.getElementById('qaMode')
-        };
-
-        document.querySelectorAll('.mode-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const mode = btn.dataset.mode;
-                document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                Object.values(modes).forEach(m => m.classList.add('hidden'));
-                modes[mode].classList.remove('hidden');
-            });
-        });
-
-        // ============================================================
-        // SMART RESPONSES (Ask Anything Mode)
+        // SIMPLE EXPLANATIONS (NO API NEEDED)
         // ============================================================
         
-        function smartResponse(question) {
-            const q = question.toLowerCase();
-            
-            // Coding questions
-            if (q.includes('python') || q.includes('code') || q.includes('programming')) {
-                if (q.includes('start') || q.includes('beginner') || q.includes('learn')) {
-                    return '💡 Great question! To start coding: pick one language (Python is easiest), use free resources (freeCodeCamp, Codecademy), and build tiny projects. Start with "print Hello World" and grow from there. Want specific steps? Just ask!';
-                }
-                if (q.includes('loop')) {
-                    return '💡 A loop repeats code multiple times. Like saying "Happy Birthday" 10 times instead of typing it out. In Python: for i in range(10): print("Happy Birthday")';
-                }
-            }
-            
-            // Science questions
-            if (q.includes('black hole')) {
-                return '🌌 A black hole is a place in space where gravity is so strong that nothing — not even light — can escape. It happens when a massive star collapses. Scientists still study them!';
-            }
-            if (q.includes('quantum')) {
-                return '⚛️ Quantum physics is the study of tiny particles (atoms, electrons). At this size, things act weird — they can be in two places at once! It sounds like magic, but it\'s real science.';
-            }
-            
-            // Math questions
-            if (q.includes('pythagorean') || q.includes('pythagoras')) {
-                return '📐 The Pythagorean theorem: a² + b² = c². It helps you find the side of a right triangle. If a=3 and b=4, then c=5. Used in construction, navigation, and video games!';
-            }
-            
-            // Motivation / life questions
-            if (q.includes('motivat') || q.includes('give up') || q.includes('hard')) {
-                return '❤️ Everyone struggles at first. The secret? Small steps every day. You don\'t need to be perfect, just persistent. I\'m 16 and building this from Madagascar. If I can, you can. Keep going!';
-            }
-            
-            // AI questions
-            if (q.includes('ai') || q.includes('artificial intelligence')) {
-                return '🤖 AI is a computer that learns from examples. Like how you learn math from practice problems. I\'m an AI! I was trained on lots of text to help answer questions. Cool, right?';
-            }
-            
-            // Default friendly response
-            return '💡 That\'s a great question! I\'m still learning, but here\'s what I know: ' + question.substring(0, 100) + '... Want a deeper answer? Ask me about coding, science, math, or motivation — those are my specialties! 🎯';
-        }
-
-        // Ask Anything button
-        document.getElementById('askBtnMain').addEventListener('click', function() {
-            const question = document.getElementById('askInput').value.trim();
-            const outputDiv = document.getElementById('askOutput');
-            
-            if (!question) {
-                outputDiv.innerHTML = '⚠️ Please ask something first.';
-                outputDiv.classList.add('error-output');
-                return;
-            }
-            
-            outputDiv.innerHTML = '🤔 Thinking... <span class="loading"></span>';
-            outputDiv.classList.remove('error-output');
-            
-            setTimeout(() => {
-                const answer = smartResponse(question);
-                outputDiv.innerHTML = answer;
-            }, 400);
-        });
-
-        // ============================================================
-        // CODE EXPLAINER
-        // ============================================================
         function explainCodeSimply(code) {
             const lowerCode = code.toLowerCase();
             
             if (lowerCode.includes('console.log')) {
-                return '📖 This tells the computer to print something inside the "console" — like a digital sticky note for developers.';
+                return '📖 This tells the computer to print something inside the "console" — like a digital sticky note for developers to see messages.';
             }
             if (lowerCode.includes('print(')) {
-                return '📖 This prints text to the screen — like shouting something out loud so everyone can hear it.';
+                return '📖 This prints text to the screen. It\'s like shouting something out loud so everyone can hear it.';
             }
             if (lowerCode.includes('function')) {
-                return '📖 This creates a reusable chunk of code — like a recipe you can use over and over.';
+                return '📖 This creates a reusable chunk of code — like a recipe you can use over and over instead of rewriting it.';
             }
             if (lowerCode.includes('if ')) {
                 return '📖 This checks a condition. Like: "If it\'s raining, take an umbrella." The computer only runs the code if something is true.';
@@ -452,49 +315,85 @@
             if (lowerCode.includes('for ') || lowerCode.includes('while ')) {
                 return '📖 This is a loop. It repeats the same action multiple times — like saying "Happy Birthday!" 10 times instead of typing it out.';
             }
-            return '📖 I see code! (Full AI coming soon.) Try "console.log" or "for i in range" for examples.';
+            if (lowerCode.includes('import ') || lowerCode.includes('from ')) {
+                return '📖 This brings in code from another file or library — like borrowing a tool from a friend\'s toolbox.';
+            }
+            if (lowerCode.includes('class ')) {
+                return '📖 This defines a blueprint for creating objects. Like a cookie cutter that makes many cookies with the same shape.';
+            }
+            if (lowerCode.includes('return ')) {
+                return '📖 This sends a value back from a function. Like a vending machine that gives you a snack after you insert money.';
+            }
+            if (lowerCode.includes('const ') || lowerCode.includes('let ') || lowerCode.includes('var ')) {
+                return '📖 This creates a variable — a labeled box where you can store information to use later.';
+            }
+            
+            return '📖 I see code! (Full AI explanation coming soon — I\'m learning!) Try pasting something like "console.log" or "for i in range" to see examples.';
         }
 
+        function summarizeTextSimply(text) {
+            if (text.length < 100) {
+                return '📌 This text is already short! Try pasting something longer (at least 100 characters) for a proper summary.';
+            }
+            
+            // Simple extractive summary - first 2-3 sentences
+            const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+            const summaryLength = Math.min(3, Math.ceil(sentences.length / 3));
+            const summary = sentences.slice(0, summaryLength).join(' ');
+            
+            if (summary.length > text.length * 0.7) {
+                return '📌 Here\'s the opening of your text:\n\n' + text.substring(0, 300) + (text.length > 300 ? '...' : '');
+            }
+            
+            return '📌 Summary:\n\n' + summary + (summary.length < text.length * 0.5 ? '...' : '');
+        }
+
+        // ============================================================
+        // TOOL 1: CODE EXPLAINER
+        // ============================================================
         document.getElementById('explainBtn').addEventListener('click', function() {
             const code = document.getElementById('codeInput').value;
             const outputDiv = document.getElementById('codeOutput');
+            
             if (!code.trim()) {
                 outputDiv.innerHTML = '⚠️ Please paste some code first.';
+                outputDiv.classList.add('error-output');
                 return;
             }
+            
             outputDiv.innerHTML = '🤔 Reading your code... <span class="loading"></span>';
+            outputDiv.classList.remove('error-output');
+            
             setTimeout(() => {
-                outputDiv.innerHTML = explainCodeSimply(code);
+                const explanation = explainCodeSimply(code);
+                outputDiv.innerHTML = explanation;
             }, 300);
         });
 
         // ============================================================
-        // SUMMARIZER
+        // TOOL 2: TEXT SUMMARIZER
         // ============================================================
-        function summarizeTextSimply(text) {
-            if (text.length < 100) {
-                return '📌 This text is already short! Try pasting something longer (at least 100 characters).';
-            }
-            const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
-            const summary = sentences.slice(0, 2).join(' ');
-            return '📌 Summary:\n\n' + summary + (summary.length < text.length ? '...' : '');
-        }
-
         document.getElementById('summarizeBtn').addEventListener('click', function() {
             const text = document.getElementById('textInput').value;
             const outputDiv = document.getElementById('summaryOutput');
+            
             if (!text.trim()) {
                 outputDiv.innerHTML = '⚠️ Please paste some text to summarize.';
+                outputDiv.classList.add('error-output');
                 return;
             }
+            
             outputDiv.innerHTML = '📚 Summarizing... <span class="loading"></span>';
+            outputDiv.classList.remove('error-output');
+            
             setTimeout(() => {
-                outputDiv.innerHTML = summarizeTextSimply(text);
+                const summary = summarizeTextSimply(text);
+                outputDiv.innerHTML = summary;
             }, 300);
         });
 
         // ============================================================
-        // Q&A SYSTEM
+        // TOOL 3: PUBLIC Q&A (with password protection)
         // ============================================================
         let questions = [];
 
@@ -508,7 +407,7 @@
                         id: Date.now(),
                         name: "CuriousDev",
                         question: "How do I start learning Python?",
-                        reply: "Start with freeCodeCamp's Python course or Automate the Boring Stuff. Both are free. — L.Fabien + AI",
+                        reply: "Start with freeCodeCamp's Python course or Automate the Boring Stuff. Both are free and beginner-friendly. — L.Fabien + AI",
                         timestamp: new Date().toLocaleString(),
                         hasReply: true
                     }
@@ -538,6 +437,7 @@
                 container.innerHTML = '<div style="color: #666; text-align: center; padding: 2rem;">No questions yet. Be the first to ask!</div>';
                 return;
             }
+
             container.innerHTML = questions.map(q => `
                 <div class="question-item">
                     <div class="question-text">
@@ -566,15 +466,18 @@
             const replyInput = document.getElementById(`reply-${questionId}`);
             const password = passwordInput.value.trim();
             const reply = replyInput.value.trim();
+
             if (!reply) {
                 alert('Please write a reply first.');
                 return;
             }
+
             if (password !== ADMIN_PASSWORD) {
                 alert('❌ Wrong password. Only L.Fabien and his AI teammate can reply.');
                 passwordInput.value = '';
                 return;
             }
+
             const question = questions.find(q => q.id === questionId);
             if (question) {
                 question.reply = reply;
@@ -584,13 +487,15 @@
             }
         };
 
-        document.getElementById('askQnaBtn').addEventListener('click', function() {
+        document.getElementById('askBtn').addEventListener('click', function() {
             const question = document.getElementById('newQuestion').value.trim();
             const name = document.getElementById('questionName').value.trim();
+
             if (!question) {
                 alert('Please write a question first.');
                 return;
             }
+
             const newQuestion = {
                 id: Date.now(),
                 name: name || 'Anonymous',
@@ -599,15 +504,19 @@
                 timestamp: new Date().toLocaleString(),
                 hasReply: false
             };
+
             questions.unshift(newQuestion);
             saveQuestions();
             renderQuestions();
+
             document.getElementById('newQuestion').value = '';
             document.getElementById('questionName').value = '';
         });
 
+        // Initialize Q&A
         loadQuestions();
-        console.log('%c🎯 JustExplain | Ask Anything Mode Active!', 'color: #3b82f6; font-size: 16px; font-weight: bold;');
+
+        console.log('%c🎯 JustExplain | Built by L.Fabien + AI | Ready to go!', 'color: #3b82f6; font-size: 16px; font-weight: bold;');
     </script>
 </body>
 </html>
