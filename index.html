@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>OMNIMOS Chat — Talk with Real People</title>
+    <title>OMNIMOS Chat — Real-Time | Talk with the World</title>
     <style>
         * {
             margin: 0;
@@ -64,7 +64,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.9);
+            background: rgba(0,0,0,0.95);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -81,8 +81,14 @@
         }
 
         .modal-content h3 {
-            margin-bottom: 1rem;
+            margin-bottom: 0.5rem;
             color: white;
+        }
+
+        .modal-content p {
+            color: #aaa;
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
         }
 
         .modal-content input {
@@ -104,6 +110,7 @@
             border-radius: 40px;
             font-weight: bold;
             cursor: pointer;
+            width: 100%;
         }
 
         /* Chat Area */
@@ -219,6 +226,28 @@
             background: rgba(0,0,0,0.3);
         }
 
+        .connection-status {
+            font-size: 0.65rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 20px;
+            margin-left: 0.5rem;
+        }
+
+        .connected {
+            background: #10b981;
+            color: white;
+        }
+
+        .connecting {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .disconnected {
+            background: #ef4444;
+            color: white;
+        }
+
         @media (max-width: 640px) {
             .message { max-width: 90%; }
             .bubble { font-size: 0.85rem; }
@@ -230,11 +259,11 @@
     <!-- Username Modal -->
     <div id="usernameModal" class="modal">
         <div class="modal-content">
-            <h3>💬 Join OMNIMOS Chat</h3>
-            <p style="color: #aaa; font-size: 0.85rem;">Talk with real people from around the world</p>
+            <h3>💬 OMNIMOS Real-Time Chat</h3>
+            <p>Talk with people from around the world — instantly</p>
             <input type="text" id="usernameInput" placeholder="Enter your name" maxlength="20">
             <button id="joinBtn">Join Chat →</button>
-            <p style="color: #555; font-size: 0.7rem; margin-top: 1rem;">🌍 From Madagascar with code</p>
+            <p style="color: #555; font-size: 0.7rem; margin-top: 1rem;">🌍 From Madagascar with code • Real-time WebSocket</p>
         </div>
     </div>
 
@@ -242,14 +271,15 @@
         <div class="avatar">💬</div>
         <div class="header-info">
             <h2>OMNIMOS Chat</h2>
-            <p>Talk with real people • Be kind</p>
+            <p>Real-time • Talk with the world</p>
         </div>
         <div class="online-count" id="onlineCount">👥 0 online</div>
+        <div id="connectionStatus" class="connection-status connecting">Connecting...</div>
     </div>
-    <div class="room-info" id="roomInfo">🌍 Global Room • Everyone can see your messages</div>
+    <div class="room-info" id="roomInfo">🌍 Global Room • Real-time WebSocket • Messages appear instantly</div>
 
     <div class="chat-messages" id="chatMessages">
-        <div class="system-message">💬 Welcome to OMNIMOS Chat! Enter your name to start talking.</div>
+        <div class="system-message">💬 Connecting to real-time chat server...</div>
     </div>
 
     <div class="chat-input-container">
@@ -257,85 +287,56 @@
         <button class="send-btn" id="sendBtn" disabled>📤 Send</button>
     </div>
 
+    <!-- itty-sockets CDN - Real-time WebSockets -->
+    <script src="https://cdn.jsdelivr.net/npm/itty-sockets@0.9.2/dist/itty-sockets.min.js"></script>
+
     <script>
         // ============================================================
-        // OMNIMOS PEOPLE-TO-PEOPLE CHAT
-        // Uses localStorage + BroadcastChannel for same-tab communication
-        // For real multi-user, we'd need a backend, but this works for demo/share
+        // OMNIMOS REAL-TIME CHAT with itty-sockets
+        // Free, no server, real-time WebSockets
         // ============================================================
         
         let currentUser = null;
-        let messages = [];
-
-        // Load messages from localStorage
-        function loadMessages() {
-            const stored = localStorage.getItem('omnimos_chat_messages');
-            if (stored) {
-                messages = JSON.parse(stored);
+        let socket = null;
+        let usersOnline = new Set();
+        
+        // Chat channel name (everyone joins the same channel)
+        const CHANNEL = 'omnimos-global-chat';
+        
+        // DOM elements
+        const modal = document.getElementById('usernameModal');
+        const usernameInput = document.getElementById('usernameInput');
+        const joinBtn = document.getElementById('joinBtn');
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const onlineCountSpan = document.getElementById('onlineCount');
+        const connectionStatusSpan = document.getElementById('connectionStatus');
+        
+        // Helper: Add message to chat
+        function addMessageToChat(sender, message, isSystem = false, isMyMessage = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isMyMessage ? 'my-message' : 'other-message'}`;
+            
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            if (isSystem) {
+                messageDiv.innerHTML = `<div class="system-message">${message}</div>`;
             } else {
-                messages = [];
-            }
-            renderMessages();
-        }
-
-        function saveMessages() {
-            localStorage.setItem('omnimos_chat_messages', JSON.stringify(messages.slice(-100))); // Keep last 100 messages
-        }
-
-        function renderMessages() {
-            const container = document.getElementById('chatMessages');
-            if (!container) return;
-            
-            if (messages.length === 0) {
-                container.innerHTML = '<div class="system-message">💬 No messages yet. Be the first to say something!</div>';
-                return;
-            }
-            
-            container.innerHTML = messages.map(msg => {
-                const isMyMessage = currentUser && msg.sender === currentUser;
-                const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                
-                if (msg.isSystem) {
-                    return `<div class="system-message">${msg.text}</div>`;
-                }
-                
-                return `
-                    <div class="message ${isMyMessage ? 'my-message' : 'other-message'}">
-                        <div>
-                            <div class="message-name">${escapeHtml(msg.sender)}</div>
-                            <div class="bubble">${escapeHtml(msg.text)}</div>
-                            <div class="message-time">${time}</div>
-                        </div>
+                messageDiv.innerHTML = `
+                    <div>
+                        <div class="message-name">${escapeHtml(sender)}</div>
+                        <div class="bubble">${escapeHtml(message)}</div>
+                        <div class="message-time">${time}</div>
                     </div>
                 `;
-            }).join('');
-            
-            // Scroll to bottom
-            container.scrollTop = container.scrollHeight;
-        }
-
-        function addMessage(sender, text, isSystem = false) {
-            const message = {
-                id: Date.now(),
-                sender: sender,
-                text: text,
-                timestamp: Date.now(),
-                isSystem: isSystem
-            };
-            messages.push(message);
-            saveMessages();
-            renderMessages();
-            
-            // Broadcast to other tabs/windows
-            if (window.broadcastChannel) {
-                window.broadcastChannel.postMessage({ type: 'newMessage', message });
             }
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
         }
-
-        function addSystemMessage(text) {
-            addMessage('System', text, true);
-        }
-
+        
+        // Helper: Escape HTML
         function escapeHtml(str) {
             if (!str) return '';
             return str.replace(/[&<>]/g, function(m) {
@@ -345,83 +346,137 @@
                 return m;
             });
         }
-
-        // Update online count (simulated)
+        
+        // Update online count display
         function updateOnlineCount() {
-            // This is a simulation since we don't have a real backend
-            const last5Minutes = Date.now() - 5 * 60 * 1000;
-            const recentUsers = new Set();
-            messages.forEach(msg => {
-                if (!msg.isSystem && msg.timestamp > last5Minutes) {
-                    recentUsers.add(msg.sender);
-                }
-            });
-            const count = Math.max(1, recentUsers.size);
-            document.getElementById('onlineCount').innerHTML = `👥 ${count} online`;
+            onlineCountSpan.innerHTML = `👥 ${usersOnline.size} online`;
         }
-
-        setInterval(updateOnlineCount, 30000);
-        updateOnlineCount();
-
-        // Send message
-        function sendMessage() {
-            const input = document.getElementById('chatInput');
-            const text = input.value.trim();
-            if (!text || !currentUser) return;
+        
+        // Update connection status
+        function setConnectionStatus(status, text) {
+            connectionStatusSpan.className = `connection-status ${status}`;
+            connectionStatusSpan.textContent = text;
+        }
+        
+        // Initialize WebSocket connection with itty-sockets
+        function initWebSocket(username) {
+            setConnectionStatus('connecting', 'Connecting...');
             
-            addMessage(currentUser, text);
-            input.value = '';
-            input.focus();
+            try {
+                // Connect to itty-sockets channel (free, no API keys)
+                // Using itty-sockets - zero config WebSockets[citation:2]
+                socket = ittySockets.connect(CHANNEL, { as: username });
+                
+                // Handle incoming messages
+                socket.on('message', ({ message, alias }) => {
+                    if (alias === username) return; // Don't show own messages twice
+                    addMessageToChat(alias, message, false, false);
+                });
+                
+                // Handle user join events
+                socket.on('join', ({ alias }) => {
+                    if (alias !== username) {
+                        usersOnline.add(alias);
+                        updateOnlineCount();
+                        addMessageToChat('System', `✨ ${escapeHtml(alias)} joined the chat`, true);
+                    } else {
+                        setConnectionStatus('connected', 'Connected');
+                        chatInput.disabled = false;
+                        sendBtn.disabled = false;
+                        chatInput.focus();
+                    }
+                });
+                
+                // Handle user leave events
+                socket.on('leave', ({ alias }) => {
+                    if (usersOnline.has(alias)) {
+                        usersOnline.delete(alias);
+                        updateOnlineCount();
+                        addMessageToChat('System', `👋 ${escapeHtml(alias)} left the chat`, true);
+                    }
+                });
+                
+                // Handle connection open
+                socket.on('open', () => {
+                    setConnectionStatus('connected', 'Connected');
+                    usersOnline.add(username);
+                    updateOnlineCount();
+                    addMessageToChat('System', `✨ Welcome to OMNIMOS Real-Time Chat, ${escapeHtml(username)}!`, true);
+                    addMessageToChat('System', `🌍 Anyone with this link can chat instantly — real-time!`, true);
+                });
+                
+                // Handle connection close
+                socket.on('close', () => {
+                    setConnectionStatus('disconnected', 'Disconnected');
+                    chatInput.disabled = true;
+                    sendBtn.disabled = true;
+                    addMessageToChat('System', `🔌 Disconnected from chat server. Refresh to reconnect.`, true);
+                });
+                
+                // Handle errors
+                socket.on('error', (error) => {
+                    console.error('WebSocket error:', error);
+                    addMessageToChat('System', `⚠️ Connection error. Trying to reconnect...`, true);
+                });
+                
+            } catch (error) {
+                console.error('Failed to connect:', error);
+                addMessageToChat('System', `❌ Failed to connect to chat server. Please refresh and try again.`, true);
+                setConnectionStatus('disconnected', 'Failed');
+            }
         }
-
+        
+        // Send a message
+        function sendMessage() {
+            if (!socket || !currentUser) return;
+            
+            const message = chatInput.value.trim();
+            if (!message) return;
+            
+            // Send via WebSocket
+            socket.send(message);
+            
+            // Show message locally immediately
+            addMessageToChat(currentUser, message, false, true);
+            
+            // Clear input
+            chatInput.value = '';
+            chatInput.focus();
+        }
+        
         // Join chat
-        document.getElementById('joinBtn').addEventListener('click', function() {
-            const username = document.getElementById('usernameInput').value.trim();
+        joinBtn.addEventListener('click', function() {
+            const username = usernameInput.value.trim();
             if (!username) {
                 alert('Please enter a name');
                 return;
             }
             
             currentUser = username;
-            document.getElementById('usernameModal').style.display = 'none';
-            document.getElementById('chatInput').disabled = false;
-            document.getElementById('sendBtn').disabled = false;
-            document.getElementById('chatInput').focus();
+            modal.style.display = 'none';
             
-            addSystemMessage(`✨ ${escapeHtml(currentUser)} joined the chat`);
-            
-            // Setup broadcast for multi-tab
-            window.broadcastChannel = new BroadcastChannel('omnimos_chat');
-            window.broadcastChannel.onmessage = (event) => {
-                if (event.data.type === 'newMessage') {
-                    const msg = event.data.message;
-                    // Only add if not already present
-                    if (!messages.find(m => m.id === msg.id)) {
-                        messages.push(msg);
-                        saveMessages();
-                        renderMessages();
-                    }
-                }
-            };
+            // Initialize WebSocket connection
+            initWebSocket(currentUser);
         });
-
+        
+        // Allow Enter key in username input
+        usernameInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                joinBtn.click();
+            }
+        });
+        
         // Send on button click
-        document.getElementById('sendBtn').addEventListener('click', sendMessage);
+        sendBtn.addEventListener('click', sendMessage);
         
         // Send on Enter key
-        document.getElementById('chatInput').addEventListener('keypress', function(e) {
+        chatInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 sendMessage();
             }
         });
-
-        // Load existing messages
-        loadMessages();
         
-        // Update online count when page loads
-        setTimeout(updateOnlineCount, 1000);
-        
-        console.log('%c💬 OMNIMOS Chat | People-to-People | Built by L.Fabien', 'color: #3b82f6; font-size: 14px;');
+        console.log('%c💬 OMNIMOS Real-Time Chat | Powered by itty-sockets | Built by L.Fabien (16, Madagascar)', 'color: #3b82f6; font-size: 14px; font-weight: bold;');
     </script>
 </body>
 </html>
