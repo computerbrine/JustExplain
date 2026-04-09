@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>OMNIMOS Chat — Talk with Real People</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #0a0a0a 100%);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .chat-header {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 0.8rem 1rem;
+            border-bottom: 1px solid #3b82f6;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #3b82f6, #06b6d4);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .header-info h2 {
+            font-size: 1.1rem;
+            color: white;
+        }
+
+        .header-info p {
+            font-size: 0.65rem;
+            color: #06b6d4;
+        }
+
+        .online-count {
+            font-size: 0.7rem;
+            color: #10b981;
+            margin-left: auto;
+        }
+
+        /* Username Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: #1e293b;
+            padding: 2rem;
+            border-radius: 28px;
+            text-align: center;
+            max-width: 350px;
+            width: 90%;
+        }
+
+        .modal-content h3 {
+            margin-bottom: 1rem;
+            color: white;
+        }
+
+        .modal-content input {
+            width: 100%;
+            padding: 0.8rem;
+            background: #0d1117;
+            border: 1px solid #3b82f6;
+            border-radius: 40px;
+            color: white;
+            margin: 1rem 0;
+            text-align: center;
+        }
+
+        .modal-content button {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 40px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* Chat Area */
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .message {
+            display: flex;
+            max-width: 80%;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .my-message {
+            align-self: flex-end;
+            justify-content: flex-end;
+        }
+
+        .other-message {
+            align-self: flex-start;
+        }
+
+        .bubble {
+            padding: 0.7rem 1rem;
+            border-radius: 20px;
+            line-height: 1.4;
+            word-break: break-word;
+        }
+
+        .my-message .bubble {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .other-message .bubble {
+            background: #1e293b;
+            color: #e0e0e0;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-name {
+            font-size: 0.65rem;
+            color: #06b6d4;
+            margin-bottom: 0.2rem;
+            padding-left: 0.3rem;
+        }
+
+        .message-time {
+            font-size: 0.6rem;
+            color: #666;
+            margin-top: 0.2rem;
+            padding-left: 0.5rem;
+        }
+
+        /* System Message */
+        .system-message {
+            text-align: center;
+            font-size: 0.7rem;
+            color: #888;
+            margin: 0.5rem 0;
+        }
+
+        /* Input Area */
+        .chat-input-container {
+            background: #0d1117;
+            padding: 0.8rem;
+            border-top: 1px solid #1e293b;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .chat-input {
+            flex: 1;
+            background: #1e293b;
+            border: none;
+            padding: 0.8rem 1rem;
+            border-radius: 30px;
+            color: white;
+            font-size: 0.95rem;
+            outline: none;
+        }
+
+        .chat-input:focus {
+            border: 1px solid #3b82f6;
+        }
+
+        .send-btn {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border: none;
+            padding: 0.8rem 1.2rem;
+            border-radius: 30px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .room-info {
+            font-size: 0.7rem;
+            color: #888;
+            text-align: center;
+            padding: 0.3rem;
+            background: rgba(0,0,0,0.3);
+        }
+
+        @media (max-width: 640px) {
+            .message { max-width: 90%; }
+            .bubble { font-size: 0.85rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Username Modal -->
+    <div id="usernameModal" class="modal">
+        <div class="modal-content">
+            <h3>💬 Join OMNIMOS Chat</h3>
+            <p style="color: #aaa; font-size: 0.85rem;">Talk with real people from around the world</p>
+            <input type="text" id="usernameInput" placeholder="Enter your name" maxlength="20">
+            <button id="joinBtn">Join Chat →</button>
+            <p style="color: #555; font-size: 0.7rem; margin-top: 1rem;">🌍 From Madagascar with code</p>
+        </div>
+    </div>
+
+    <div class="chat-header">
+        <div class="avatar">💬</div>
+        <div class="header-info">
+            <h2>OMNIMOS Chat</h2>
+            <p>Talk with real people • Be kind</p>
+        </div>
+        <div class="online-count" id="onlineCount">👥 0 online</div>
+    </div>
+    <div class="room-info" id="roomInfo">🌍 Global Room • Everyone can see your messages</div>
+
+    <div class="chat-messages" id="chatMessages">
+        <div class="system-message">💬 Welcome to OMNIMOS Chat! Enter your name to start talking.</div>
+    </div>
+
+    <div class="chat-input-container">
+        <input type="text" class="chat-input" id="chatInput" placeholder="Type your message..." disabled>
+        <button class="send-btn" id="sendBtn" disabled>📤 Send</button>
+    </div>
+
+    <script>
+        // ============================================================
+        // OMNIMOS PEOPLE-TO-PEOPLE CHAT
+        // Uses localStorage + BroadcastChannel for same-tab communication
+        // For real multi-user, we'd need a backend, but this works for demo/share
+        // ============================================================
+        
+        let currentUser = null;
+        let messages = [];
+
+        // Load messages from localStorage
+        function loadMessages() {
+            const stored = localStorage.getItem('omnimos_chat_messages');
+            if (stored) {
+                messages = JSON.parse(stored);
+            } else {
+                messages = [];
+            }
+            renderMessages();
+        }
+
+        function saveMessages() {
+            localStorage.setItem('omnimos_chat_messages', JSON.stringify(messages.slice(-100))); // Keep last 100 messages
+        }
+
+        function renderMessages() {
+            const container = document.getElementById('chatMessages');
+            if (!container) return;
+            
+            if (messages.length === 0) {
+                container.innerHTML = '<div class="system-message">💬 No messages yet. Be the first to say something!</div>';
+                return;
+            }
+            
+            container.innerHTML = messages.map(msg => {
+                const isMyMessage = currentUser && msg.sender === currentUser;
+                const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                
+                if (msg.isSystem) {
+                    return `<div class="system-message">${msg.text}</div>`;
+                }
+                
+                return `
+                    <div class="message ${isMyMessage ? 'my-message' : 'other-message'}">
+                        <div>
+                            <div class="message-name">${escapeHtml(msg.sender)}</div>
+                            <div class="bubble">${escapeHtml(msg.text)}</div>
+                            <div class="message-time">${time}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Scroll to bottom
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function addMessage(sender, text, isSystem = false) {
+            const message = {
+                id: Date.now(),
+                sender: sender,
+                text: text,
+                timestamp: Date.now(),
+                isSystem: isSystem
+            };
+            messages.push(message);
+            saveMessages();
+            renderMessages();
+            
+            // Broadcast to other tabs/windows
+            if (window.broadcastChannel) {
+                window.broadcastChannel.postMessage({ type: 'newMessage', message });
+            }
+        }
+
+        function addSystemMessage(text) {
+            addMessage('System', text, true);
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
+        // Update online count (simulated)
+        function updateOnlineCount() {
+            // This is a simulation since we don't have a real backend
+            const last5Minutes = Date.now() - 5 * 60 * 1000;
+            const recentUsers = new Set();
+            messages.forEach(msg => {
+                if (!msg.isSystem && msg.timestamp > last5Minutes) {
+                    recentUsers.add(msg.sender);
+                }
+            });
+            const count = Math.max(1, recentUsers.size);
+            document.getElementById('onlineCount').innerHTML = `👥 ${count} online`;
+        }
+
+        setInterval(updateOnlineCount, 30000);
+        updateOnlineCount();
+
+        // Send message
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const text = input.value.trim();
+            if (!text || !currentUser) return;
+            
+            addMessage(currentUser, text);
+            input.value = '';
+            input.focus();
+        }
+
+        // Join chat
+        document.getElementById('joinBtn').addEventListener('click', function() {
+            const username = document.getElementById('usernameInput').value.trim();
+            if (!username) {
+                alert('Please enter a name');
+                return;
+            }
+            
+            currentUser = username;
+            document.getElementById('usernameModal').style.display = 'none';
+            document.getElementById('chatInput').disabled = false;
+            document.getElementById('sendBtn').disabled = false;
+            document.getElementById('chatInput').focus();
+            
+            addSystemMessage(`✨ ${escapeHtml(currentUser)} joined the chat`);
+            
+            // Setup broadcast for multi-tab
+            window.broadcastChannel = new BroadcastChannel('omnimos_chat');
+            window.broadcastChannel.onmessage = (event) => {
+                if (event.data.type === 'newMessage') {
+                    const msg = event.data.message;
+                    // Only add if not already present
+                    if (!messages.find(m => m.id === msg.id)) {
+                        messages.push(msg);
+                        saveMessages();
+                        renderMessages();
+                    }
+                }
+            };
+        });
+
+        // Send on button click
+        document.getElementById('sendBtn').addEventListener('click', sendMessage);
+        
+        // Send on Enter key
+        document.getElementById('chatInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Load existing messages
+        loadMessages();
+        
+        // Update online count when page loads
+        setTimeout(updateOnlineCount, 1000);
+        
+        console.log('%c💬 OMNIMOS Chat | People-to-People | Built by L.Fabien', 'color: #3b82f6; font-size: 14px;');
+    </script>
+</body>
+</html>
