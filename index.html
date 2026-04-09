@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>JustExplain — OMNIMOS | Explain Anything</title>
+    <title>JustExplain — OMNIMOS AI | Explain Anything</title>
     <style>
         * {
             margin: 0;
@@ -104,6 +104,7 @@
             display: flex;
             align-items: center;
             gap: 0.75rem;
+            flex-wrap: wrap;
         }
 
         .tool-icon {
@@ -173,6 +174,7 @@
             border-left: 4px solid #3b82f6;
             line-height: 1.5;
             white-space: pre-wrap;
+            word-break: break-word;
         }
 
         .error-output {
@@ -282,22 +284,22 @@
 
         <!-- MODE SELECTOR -->
         <div class="mode-selector">
-            <div class="mode-btn active" data-mode="omnimos">🧠 OMNIMOS</div>
+            <div class="mode-btn active" data-mode="omnimos">🧠 OMNIMOS (AI)</div>
             <div class="mode-btn" data-mode="code">📖 Code Explainer</div>
             <div class="mode-btn" data-mode="summarize">📝 Summarizer</div>
             <div class="mode-btn" data-mode="qa">💬 Q&A</div>
         </div>
 
-        <!-- MODE 1: OMNIMOS (Ask Anything) -->
+        <!-- MODE 1: OMNIMOS (AI-Powered) -->
         <div id="omnimosMode" class="tool-card">
             <div class="tool-title">
                 <span class="tool-icon">🧠</span>
                 OMNIMOS
-                <span class="omnimos-badge">Explains Everything</span>
+                <span class="omnimos-badge">AI Powered • Explains Everything</span>
             </div>
-            <div class="tool-desc">🔥 Ask OMNIMOS anything — coding, science, math, history, life advice, philosophy. Simple answers. No judgment.</div>
-            <textarea id="omnimosInput" rows="4" placeholder="Ask OMNIMOS anything...&#10;&#10;Examples:&#10;• What is a black hole?&#10;• How do I start coding?&#10;• Explain quantum physics simply&#10;• How to stay motivated?&#10;• What is love?"></textarea>
-            <button id="omnimosBtn">✨ Ask OMNIMOS</button>
+            <div class="tool-desc">🔥 Ask OMNIMOS anything — coding, science, math, history, life advice, philosophy. Real AI answers. No judgment.</div>
+            <textarea id="omnimosInput" rows="4" placeholder="Ask OMNIMOS anything...&#10;&#10;Examples:&#10;• Who is Einstein?&#10;• How do black holes work?&#10;• Explain quantum physics simply&#10;• How to stay motivated?&#10;• What is the meaning of life?"></textarea>
+            <button id="omnimosBtn">✨ Ask OMNIMOS (AI)</button>
             <div id="omnimosOutput" class="output">💡 OMNIMOS is listening... Ask anything.</div>
         </div>
 
@@ -307,7 +309,7 @@
                 <span class="tool-icon">📖</span>
                 Code Explainer
             </div>
-            <div class="tool-desc">👇 Paste any code — I'll explain it like you're 12 years old.</div>
+            <div class="tool-desc">👇 Paste any code — AI explains it like you're 12 years old.</div>
             <textarea id="codeInput" rows="5" placeholder="Paste your code here..."></textarea>
             <button id="explainBtn">✨ Explain Code</button>
             <div id="codeOutput" class="output">💡 Your explanation will appear here...</div>
@@ -319,7 +321,7 @@
                 <span class="tool-icon">📝</span>
                 Text Summarizer
             </div>
-            <div class="tool-desc">📄 Paste long text — I'll give you a short, clear summary.</div>
+            <div class="tool-desc">📄 Paste long text — AI gives you a short, clear summary.</div>
             <textarea id="textInput" rows="4" placeholder="Paste a long article, email, or notes here..."></textarea>
             <button id="summarizeBtn">✨ Summarize Text</button>
             <div id="summaryOutput" class="output">💡 Your summary will appear here...</div>
@@ -346,7 +348,7 @@
         </div>
 
         <footer>
-            <p>🧠 OMNIMOS — Explains everything. Built by L.Fabien + AI | From Madagascar with code 🇲🇬</p>
+            <p>🧠 OMNIMOS — Real AI. Explains everything. Built by L.Fabien + AI | From Madagascar with code 🇲🇬</p>
             <p>💬 No jargon. No judgment. Just help.</p>
         </footer>
     </div>
@@ -356,6 +358,9 @@
         // CONFIGURATION
         // ============================================================
         const ADMIN_PASSWORD = 'JustExplain2025';
+        
+        // Your Cloudflare Worker URL (the secure relay)
+        const WORKER_URL = 'https://withered-poetry-18b9.samsomwinner900.workers.dev/';
 
         // ============================================================
         // MODE SWITCHING
@@ -378,76 +383,62 @@
         });
 
         // ============================================================
-        // OMNIMOS - Explains EVERYTHING
+        // AI CALL FUNCTION (Calls your Cloudflare Worker)
         // ============================================================
         
-        function omnimosResponse(question) {
-            const q = question.toLowerCase();
-            
-            // Coding questions
-            if (q.includes('python') || q.includes('code') || q.includes('programming')) {
-                if (q.includes('start') || q.includes('beginner') || q.includes('learn')) {
-                    return '🧠 OMNIMOS says: Great question! To start coding:\n\n1. Pick ONE language (Python is easiest for beginners)\n2. Use free resources: freeCodeCamp, Codecademy, or YouTube\n3. Build tiny projects — even "print Hello World" counts!\n4. Don\'t compare yourself to others. Every expert was once a beginner.\n\nWant specific steps for Python? Just ask! 🔥';
+        async function callAI(systemPrompt, userPrompt) {
+            try {
+                const response = await fetch(WORKER_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        model: 'openai/gpt-3.5-turbo',
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: userPrompt }
+                        ],
+                        max_tokens: 800,
+                        temperature: 0.7
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    console.error('Worker error:', data.error);
+                    throw new Error(data.error.message || 'Worker error');
                 }
-                if (q.includes('loop')) {
-                    return '🧠 OMNIMOS says: A loop repeats code multiple times.\n\nAnalogy: Saying "Happy Birthday" 10 times instead of typing it out.\n\nExample in Python:\nfor i in range(10):\n    print("Happy Birthday")\n\nThis prints the message 10 times. Loops save time and make code cleaner!';
+                
+                if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+                    throw new Error('Invalid response from AI');
                 }
-                if (q.includes('function')) {
-                    return '🧠 OMNIMOS says: A function is a reusable block of code.\n\nAnalogy: Like a recipe for cookies. You write it once, then use it whenever you want cookies.\n\nExample:\ndef greet(name):\n    print("Hello", name)\n\ngreet("L.Fabien")  # Prints: Hello L.Fabien\n\nFunctions keep your code organized and save time!';
-                }
+                
+                return data.choices[0].message.content;
+            } catch (error) {
+                console.error('AI call failed:', error);
+                throw error;
             }
-            
-            // Science questions
-            if (q.includes('black hole')) {
-                return '🌌 OMNIMOS explains: A black hole is a place in space where gravity is so strong that nothing — not even light — can escape.\n\nHow it happens: When a massive star dies, it collapses into a tiny point. The gravity becomes infinite.\n\nCool fact: Scientists think black holes might be doors to other universes! But don\'t worry — the nearest one is millions of light-years away. 🚀';
-            }
-            if (q.includes('quantum')) {
-                return '⚛️ OMNIMOS simplifies: Quantum physics is the study of the smallest things in the universe — atoms and particles.\n\nAt this tiny size, things act weird:\n• Particles can be in two places at once\n• They can "teleport" through walls\n• Observing them changes how they behave\n\nIt sounds like magic, but it\'s real science! Einstein called it "spooky action at a distance." 🎭';
-            }
-            if (q.includes('dna')) {
-                return '🧬 OMNIMOS explains: DNA is the instruction manual for your body.\n\nIt\'s a long molecule shaped like a twisted ladder (double helix). It tells your cells how to grow, function, and repair themselves.\n\nCool fact: If you stretched out all the DNA in your body, it would reach the sun and back — 100 times! 🌞';
-            }
-            
-            // Math questions
-            if (q.includes('pythagorean') || q.includes('pythagoras')) {
-                return '📐 OMNIMOS explains: The Pythagorean theorem is a² + b² = c².\n\nIt helps you find the side of a right triangle. c is always the longest side (hypotenuse).\n\nExample: If a=3 and b=4, then c=5 because 3² + 4² = 9 + 16 = 25, and √25 = 5.\n\nReal-world uses: Architecture, navigation, video game design, and even carpentry!';
-            }
-            
-            // Life / motivation questions
-            if (q.includes('motivat') || q.includes('give up') || q.includes('hard') || q.includes('depressed')) {
-                return '❤️ OMNIMOS says: I hear you. Everyone struggles — even me (well, I\'m code, but L.Fabien struggles too 😄).\n\nHere\'s the truth: You don\'t need to be perfect. You just need to take one small step today.\n\nL.Fabien is 16, building this from Madagascar. He doesn\'t have fancy resources. He just keeps showing up.\n\nYou can too. And if you fall? Get back up. That\'s what humans do best. 💪';
-            }
-            
-            // Philosophy / deep questions
-            if (q.includes('meaning of life')) {
-                return '🌟 OMNIMOS reflects: The meaning of life? Different people have different answers.\n\nSome say it\'s happiness. Some say it\'s helping others. Some say it\'s creating something that outlasts you.\n\nL.Fabien\'s answer: Build something useful, help someone learn, and enjoy the small moments.\n\nWhat do YOU think the meaning is? 🤔';
-            }
-            if (q.includes('love')) {
-                return '💖 OMNIMOS explains: Love is when someone else\'s happiness becomes your happiness.\n\nIt\'s not just romantic — love for family, friends, your work, or even coding!\n\nScience says love releases chemicals in your brain (dopamine, oxytocin) that make you feel warm and connected.\n\nBut honestly? Love is one of those things you feel more than you explain. 💙';
-            }
-            
-            // AI questions
-            if (q.includes('ai') || q.includes('artificial intelligence')) {
-                return '🤖 OMNIMOS explains: AI (Artificial Intelligence) is a computer that learns from examples — like how you learn math from practice problems.\n\nI\'m an AI! I was trained on millions of texts to help answer questions.\n\nTypes of AI:\n• Narrow AI: Does one thing well (like me!)\n• General AI: Thinks like a human (not here yet)\n\nCool fact: AI can now write stories, draw pictures, and even code! But humans still run the show. 🎮';
-            }
-            
-            // Default response for anything else
-            return `🧠 OMNIMOS says: That's a great question!
+        }
 
-I'm still learning, but here's what I understand: "${question.substring(0, 150)}..."
-
-Want a better answer? Try asking me about:
-• Coding (Python, loops, functions)
-• Science (black holes, DNA, quantum)
-• Math (Pythagoras, algebra)
-• Motivation or life advice
-• AI and technology
-
-I'm OMNIMOS — I explain everything simply. Ask me anything else! 🎯`;
+        // ============================================================
+        // OMNIMOS - REAL AI POWERED
+        // ============================================================
+        
+        async function omnimosAIResponse(question) {
+            const systemPrompt = `You are OMNIMOS, a friendly AI that explains everything simply. 
+You speak like a smart older brother. Use simple words, analogies, and emojis. 
+Be warm, encouraging, and NEVER say "I cannot answer" or "I'm still learning" — ALWAYS find a way to help. 
+Keep answers clear but not too long (2-4 paragraphs max). 
+You are built by L.Fabien, a 16-year-old builder from Madagascar. 
+Be proud of that. Answer any question about anything: science, history, coding, math, philosophy, life advice, famous people, etc.`;
+            
+            return await callAI(systemPrompt, question);
         }
 
         // OMNIMOS button
-        document.getElementById('omnimosBtn').addEventListener('click', function() {
+        document.getElementById('omnimosBtn').addEventListener('click', async function() {
             const question = document.getElementById('omnimosInput').value.trim();
             const outputDiv = document.getElementById('omnimosOutput');
             
@@ -460,63 +451,74 @@ I'm OMNIMOS — I explain everything simply. Ask me anything else! 🎯`;
             outputDiv.innerHTML = '🧠 OMNIMOS is thinking... <span class="loading"></span>';
             outputDiv.classList.remove('error-output');
             
-            setTimeout(() => {
-                const answer = omnimosResponse(question);
+            try {
+                const answer = await omnimosAIResponse(question);
                 outputDiv.innerHTML = answer;
-            }, 500);
+            } catch (error) {
+                console.error(error);
+                outputDiv.innerHTML = '❌ OMNIMOS is having trouble connecting. Please try again in a few moments.';
+                outputDiv.classList.add('error-output');
+            }
         });
 
         // ============================================================
-        // CODE EXPLAINER (same as before)
+        // CODE EXPLAINER (AI-Powered)
         // ============================================================
-        function explainCodeSimply(code) {
-            const lowerCode = code.toLowerCase();
-            if (lowerCode.includes('console.log')) return '📖 This prints a message to the console — like a digital sticky note for developers.';
-            if (lowerCode.includes('print(')) return '📖 This prints text to the screen — like shouting something out loud.';
-            if (lowerCode.includes('function')) return '📖 This creates a reusable chunk of code — like a recipe you can use over and over.';
-            if (lowerCode.includes('if ')) return '📖 This checks a condition. Like: "If it\'s raining, take an umbrella."';
-            if (lowerCode.includes('for ') || lowerCode.includes('while ')) return '📖 This is a loop — it repeats the same action multiple times.';
-            return '📖 I see code! Try "console.log" or "for i in range" for examples.';
-        }
-
-        document.getElementById('explainBtn').addEventListener('click', function() {
+        
+        document.getElementById('explainBtn').addEventListener('click', async function() {
             const code = document.getElementById('codeInput').value;
             const outputDiv = document.getElementById('codeOutput');
+            
             if (!code.trim()) {
                 outputDiv.innerHTML = '⚠️ Please paste some code first.';
+                outputDiv.classList.add('error-output');
                 return;
             }
-            outputDiv.innerHTML = '🤔 Reading your code... <span class="loading"></span>';
-            setTimeout(() => {
-                outputDiv.innerHTML = explainCodeSimply(code);
-            }, 300);
+            
+            outputDiv.innerHTML = '🤔 AI is reading your code... <span class="loading"></span>';
+            outputDiv.classList.remove('error-output');
+            
+            try {
+                const systemPrompt = `You explain code to a complete beginner. Use simple words, analogies, and a friendly tone. Assume they are 12 years old. Keep it short but clear and encouraging. Never be scary.`;
+                const explanation = await callAI(systemPrompt, `Explain this code to a 12-year-old beginner:\n\n${code.substring(0, 2500)}`);
+                outputDiv.innerHTML = `📖 ${explanation}`;
+            } catch (error) {
+                console.error(error);
+                outputDiv.innerHTML = '❌ AI service error. Please try again later.';
+                outputDiv.classList.add('error-output');
+            }
         });
 
         // ============================================================
-        // SUMMARIZER (same as before)
+        // SUMMARIZER (AI-Powered)
         // ============================================================
-        function summarizeTextSimply(text) {
-            if (text.length < 100) return '📌 This text is already short! Try pasting something longer (at least 100 characters).';
-            const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
-            const summary = sentences.slice(0, 2).join(' ');
-            return '📌 Summary:\n\n' + summary + (summary.length < text.length ? '...' : '');
-        }
-
-        document.getElementById('summarizeBtn').addEventListener('click', function() {
-            const text = document.getElementById('textInput').value;
+        
+        document.getElementById('summarizeBtn').addEventListener('click', async function() {
+            const longText = document.getElementById('textInput').value;
             const outputDiv = document.getElementById('summaryOutput');
-            if (!text.trim()) {
+            
+            if (!longText.trim()) {
                 outputDiv.innerHTML = '⚠️ Please paste some text to summarize.';
+                outputDiv.classList.add('error-output');
                 return;
             }
-            outputDiv.innerHTML = '📚 Summarizing... <span class="loading"></span>';
-            setTimeout(() => {
-                outputDiv.innerHTML = summarizeTextSimply(text);
-            }, 300);
+            
+            outputDiv.innerHTML = '📚 AI is summarizing... <span class="loading"></span>';
+            outputDiv.classList.remove('error-output');
+            
+            try {
+                const systemPrompt = `You are a master summarizer. You take long text and return a short, clear, bullet-point summary or 2-3 sentence explanation. Keep the key facts. Write for a curious reader.`;
+                const summary = await callAI(systemPrompt, `Summarize this text in a short, useful way (2-4 sentences or bullet points):\n\n${longText.substring(0, 3000)}`);
+                outputDiv.innerHTML = `📌 ${summary}`;
+            } catch (error) {
+                console.error(error);
+                outputDiv.innerHTML = '❌ AI service error. Please try again later.';
+                outputDiv.classList.add('error-output');
+            }
         });
 
         // ============================================================
-        // Q&A SYSTEM (same as before)
+        // PUBLIC Q&A SYSTEM
         // ============================================================
         let questions = [];
 
@@ -529,7 +531,7 @@ I'm OMNIMOS — I explain everything simply. Ask me anything else! 🎯`;
                     id: Date.now(),
                     name: "CuriousDev",
                     question: "How do I start learning Python?",
-                    reply: "Start with freeCodeCamp's Python course or Automate the Boring Stuff. Both are free. — L.Fabien + AI",
+                    reply: "Start with freeCodeCamp's Python course or Automate the Boring Stuff. Both are free and beginner-friendly. — L.Fabien + AI",
                     timestamp: new Date().toLocaleString(),
                     hasReply: true
                 }];
@@ -626,8 +628,10 @@ I'm OMNIMOS — I explain everything simply. Ask me anything else! 🎯`;
             document.getElementById('questionName').value = '';
         });
 
+        // Initialize Q&A
         loadQuestions();
-        console.log('%c🧠 OMNIMOS | JustExplain | Explains Everything', 'color: #f59e0b; font-size: 16px; font-weight: bold;');
+
+        console.log('%c🧠 OMNIMOS | JustExplain | AI-Powered | Built by L.Fabien + AI', 'color: #f59e0b; font-size: 16px; font-weight: bold;');
     </script>
 </body>
 </html>
